@@ -50,6 +50,34 @@ local function _get_blame_for_current_line()
 end
 
 
+function M._get_current_line()
+  local window = vim.api.nvim_get_current_win();
+  local pos = vim.api.nvim_win_get_cursor(window);
+  local line = pos[1];
+
+  return line
+end
+
+function M.blame(ns_id)
+  local blame = _get_blame_for_current_line();
+
+  local blame_string = "";
+
+  blame_string = blame_string ..
+      blame["author"] .. "  " .. os.date("%d %B %Y", tonumber(blame["author-time"])) .. "  " .. blame["summary"];
+
+  local opts = {
+    virt_text = { { blame_string, "Comment" } },
+    virt_text_pos = 'eol',
+  }
+
+  local line = M._get_current_line();
+
+  local mark_id = vim.api.nvim_buf_set_extmark(0, ns_id, line - 1, 0, opts);
+
+  return mark_id;
+end
+
 function M.setup()
   vim.api.nvim_create_user_command("BlameLine", function()
     local is_git_initialized = vim.fn.system("git rev-parse --is-inside-work-tree");
@@ -67,13 +95,6 @@ function M.setup()
     end
 
 
-    local blame = _get_blame_for_current_line();
-
-    local blame_string = "";
-
-    blame_string = blame_string ..
-        blame["author"] .. "  " .. os.date("%d %B %Y", tonumber(blame["author-time"])) .. "  " .. blame["summary"];
-
 
     local all_namespaces = vim.api.nvim_get_namespaces();
 
@@ -87,17 +108,22 @@ function M.setup()
       end
     end
 
-    local opts = {
-      virt_text = { { blame_string, "Comment" } },
-      virt_text_pos = 'eol',
-    }
+    local mark_id = M.blame(ns_id);
 
-    local window = vim.api.nvim_get_current_win();
-    local pos = vim.api.nvim_win_get_cursor(window);
-    local line = pos[1];
+    local group = vim.api.nvim_create_augroup("BlameLine", {
+      clear = true
+    })
 
-
-    local mark_id = vim.api.nvim_buf_set_extmark(0, ns_id, line - 1, 0, opts)
+    vim.api.nvim_create_autocmd("CursorMoved", {
+      callback = function()
+        if mark_id then
+          vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
+        end
+        -- mark_id = M.blame(ns_id)
+      end,
+      group = group,
+      buffer = 0
+    })
   end, {})
 end
 
