@@ -86,13 +86,7 @@ local function _get_blame_for_current_line()
 end
 
 
-local function _get_current_line()
-  local window = vim.api.nvim_get_current_win();
-  local pos = vim.api.nvim_win_get_cursor(window);
-  local line = pos[1];
-
-  return line
-end
+local current_cursor_pos = nil;
 
 function M.blame(ns_id)
   local blame = _get_blame_for_current_line();
@@ -100,15 +94,18 @@ function M.blame(ns_id)
   local blame_string = "";
 
   blame_string = blame_string ..
-      "    " .. blame["author"] .. "  " ..
-      os.date("%d %B %Y", tonumber(blame["author-time"])) .. "  " .. blame["summary"];
+      blame["author"] .. "  " .. os.date("%d %B %Y", tonumber(blame["author-time"])) .. "  " .. blame["summary"];
 
   local opts = {
     virt_text = { { blame_string, "Comment" } },
     virt_text_pos = 'eol',
   }
 
-  local line = _get_current_line();
+  local pos = vim.api.nvim_win_get_cursor(0);
+
+  current_cursor_pos = pos;
+
+  local line = pos[1];
 
   local mark_id = vim.api.nvim_buf_set_extmark(0, ns_id, line - 1, 0, opts);
 
@@ -153,9 +150,17 @@ function M.setup()
 
     vim.api.nvim_create_autocmd("CursorMoved", {
       callback = function()
+        local pos = vim.api.nvim_win_get_cursor(0);
+
+        if current_cursor_pos[1] == pos[1] then
+          return
+        end
+
         if mark_id then
           vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
         end
+
+
         -- mark_id = M.blame(ns_id)
 
         -- _debounce(function()
