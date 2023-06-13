@@ -148,7 +148,7 @@ function M.setup()
       clear = true
     })
 
-    vim.api.nvim_create_autocmd("CursorMoved", {
+    vim.api.nvim_create_autocmd("CursorHold", {
       callback = function()
         local pos = vim.api.nvim_win_get_cursor(0);
 
@@ -160,12 +160,17 @@ function M.setup()
           vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
         end
 
+        mark_id = M.blame(ns_id)
+      end,
+      group = group,
+      buffer = 0
+    })
 
-        -- mark_id = M.blame(ns_id)
-
-        -- _debounce(function()
-        --   mark_id = M.blame(ns_id)
-        -- end, 1000)()
+    vim.api.nvim_create_autocmd("InsertEnter", {
+      callback = function()
+        if mark_id then
+          vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
+        end
       end,
       group = group,
       buffer = 0
