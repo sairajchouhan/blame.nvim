@@ -1,6 +1,42 @@
 M = {}
 
 
+local function _set_timeout(callback, timeout)
+  local timer = vim.loop.new_timer()
+
+  if not timer then
+    return
+  end
+
+  timer:start(timeout, 0, function()
+    timer:stop()
+    timer:close()
+    callback()
+  end)
+  return timer
+end
+
+
+local function _debounce(callback, timeout)
+  local paused = false;
+
+  return function()
+    if paused then
+      return
+    end
+
+    local return_val = callback()
+
+    paused = true
+
+    _set_timeout(function()
+      paused = false
+    end, timeout)
+
+    return return_val
+  end
+end
+
 local function _split(inputstr, sep)
   if sep == nil then
     sep = "%s"
@@ -50,7 +86,7 @@ local function _get_blame_for_current_line()
 end
 
 
-function M._get_current_line()
+local function _get_current_line()
   local window = vim.api.nvim_get_current_win();
   local pos = vim.api.nvim_win_get_cursor(window);
   local line = pos[1];
@@ -64,14 +100,15 @@ function M.blame(ns_id)
   local blame_string = "";
 
   blame_string = blame_string ..
-      blame["author"] .. "  " .. os.date("%d %B %Y", tonumber(blame["author-time"])) .. "  " .. blame["summary"];
+      "    " .. blame["author"] .. "  " ..
+      os.date("%d %B %Y", tonumber(blame["author-time"])) .. "  " .. blame["summary"];
 
   local opts = {
     virt_text = { { blame_string, "Comment" } },
     virt_text_pos = 'eol',
   }
 
-  local line = M._get_current_line();
+  local line = _get_current_line();
 
   local mark_id = vim.api.nvim_buf_set_extmark(0, ns_id, line - 1, 0, opts);
 
@@ -120,6 +157,10 @@ function M.setup()
           vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
         end
         -- mark_id = M.blame(ns_id)
+
+        -- _debounce(function()
+        --   mark_id = M.blame(ns_id)
+        -- end, 1000)()
       end,
       group = group,
       buffer = 0

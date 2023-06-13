@@ -1,0 +1,1 @@
+- do not remove the mark if line number does not change
