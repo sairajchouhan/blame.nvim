@@ -1,10 +1,15 @@
-local function split_on_first_space(str)
-  local splitTable = {}
-  local firstItem, restItems = str:match("^(%S+)%s(.+)$")
-  splitTable[1] = firstItem
-  splitTable[2] = restItems
-  return splitTable
-end
+local group = vim.api.nvim_create_augroup("BlameLine", {
+  clear = true
+})
 
 
-P(split_on_first_space("summary Added: Datadog support in Error boundary"))
+local count = 1;
+
+vim.api.nvim_create_autocmd("CursorHold", {
+  callback = function()
+    P("ho " .. count)
+    count = count + 1
+  end,
+  group = group,
+  buffer = 0,
+})
