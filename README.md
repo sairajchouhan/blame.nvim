@@ -9,7 +9,7 @@ Neovim plugin for showing git blame written in lua
 
 ## Installation & Usage
 
-- [lazy.nvim][lazy.nvim]
+- [lazy.nvim](https://github.com/folke/lazy.nvim)
 
   ```lua
   {
@@ -18,7 +18,7 @@ Neovim plugin for showing git blame written in lua
   }
   ```
 
-- [packer.nvim][packer.nvim]
+- [packer.nvim](https://github.com/wbthomason/packer.nvim)
 
   ```lua
   use({
