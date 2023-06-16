@@ -152,7 +152,7 @@ function M.setup()
     clear = true
   })
 
-  vim.api.nvim_create_user_command("BlameLineToggle", function ()
+  vim.api.nvim_create_user_command("BlameLineToggle", function()
     if is_blame_active then
       vim.cmd("BlameLineOff")
     else
@@ -175,7 +175,6 @@ function M.setup()
     vim.api.nvim_clear_autocmds({
       group = group
     })
-
   end, {})
 
   vim.api.nvim_create_user_command("BlameLineOnce", function()
@@ -184,8 +183,7 @@ function M.setup()
     end
 
     local ns_id = get_namespace_id();
-    local mark_id = M.blame(ns_id);
-
+    M.blame(ns_id);
 
     vim.api.nvim_create_autocmd("CursorMoved", {
       callback = function()
@@ -195,9 +193,10 @@ function M.setup()
           return
         end
 
-        if mark_id then
-          vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
-        end
+        vim.api.nvim_buf_clear_namespace(0, ns_id, 0, -1)
+        vim.api.nvim_clear_autocmds({
+          group = group
+        })
       end,
       group = group,
       buffer = 0
@@ -205,9 +204,10 @@ function M.setup()
 
     vim.api.nvim_create_autocmd("InsertEnter", {
       callback = function()
-        if mark_id then
-          vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
-        end
+        vim.api.nvim_buf_clear_namespace(0, ns_id, 0, -1)
+        vim.api.nvim_clear_autocmds({
+          group = group
+        })
       end,
       group = group,
       buffer = 0
