@@ -85,13 +85,47 @@ local function _get_blame_for_current_line()
   return results;
 end
 
+local function git_checks_passed()
+  local is_git_initialized = vim.fn.system("git rev-parse --is-inside-work-tree");
+
+  if not is_git_initialized == "true" then
+    print("directory is not a git repository")
+    return false
+  end
+
+  local has_any_commits = vim.fn.system("git log --oneline -n 1");
+
+  if string.find(has_any_commits, "does not have any commits yet") then
+    print("repository does not have any commits yet")
+    return false
+  end
+
+  return true
+end
+
+local function get_namespace_id()
+  local all_namespaces = vim.api.nvim_get_namespaces();
+
+  local ns_id = nil;
+
+  for key, value in pairs(all_namespaces) do
+    if key == "blame" then
+      ns_id = value
+    else
+      ns_id = vim.api.nvim_create_namespace("blame")
+    end
+  end
+
+
+  return ns_id
+end
 
 local current_cursor_pos = nil;
 
 function M.blame(ns_id)
   local blame = _get_blame_for_current_line();
 
-  local blame_string = "";
+  local blame_string = "  ";
 
   blame_string = blame_string ..
       blame["author"] .. "  " .. os.date("%d %B %Y", tonumber(blame["author-time"])) .. "  " .. blame["summary"];
@@ -113,40 +147,57 @@ function M.blame(ns_id)
 end
 
 function M.setup()
-  vim.api.nvim_create_user_command("BlameLine", function()
-    local is_git_initialized = vim.fn.system("git rev-parse --is-inside-work-tree");
+  local group = vim.api.nvim_create_augroup("Blame", {
+    clear = true
+  })
 
-    if not is_git_initialized == "true" then
-      print("directory is not a git repository")
-      return nil
+  vim.api.nvim_create_user_command("BlameLineOnce", function()
+    if not git_checks_passed() then
+      return
     end
 
-    local has_any_commits = vim.fn.system("git log --oneline -n 1");
-
-    if string.find(has_any_commits, "does not have any commits yet") then
-      print("repository does not have any commits yet")
-      return nil
-    end
-
-
-
-    local all_namespaces = vim.api.nvim_get_namespaces();
-
-    local ns_id = nil;
-
-    for key, value in pairs(all_namespaces) do
-      if key == "blame" then
-        ns_id = value
-      else
-        ns_id = vim.api.nvim_create_namespace("blame")
-      end
-    end
+    local ns_id = get_namespace_id();
 
     local mark_id = M.blame(ns_id);
 
-    local group = vim.api.nvim_create_augroup("BlameLine", {
-      clear = true
+
+    vim.api.nvim_create_autocmd("CursorMoved", {
+      callback = function()
+        local pos = vim.api.nvim_win_get_cursor(0);
+
+        if current_cursor_pos[1] == pos[1] then
+          return
+        end
+
+        if mark_id then
+          vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
+        end
+      end,
+      group = group,
+      buffer = 0
     })
+
+    vim.api.nvim_create_autocmd("InsertEnter", {
+      callback = function()
+        if mark_id then
+          vim.api.nvim_buf_del_extmark(0, ns_id, mark_id)
+        end
+      end,
+      group = group,
+      buffer = 0
+    })
+  end, {})
+
+
+  vim.api.nvim_create_user_command("BlameLine", function()
+    if not git_checks_passed() then
+      return
+    end
+
+    local ns_id = get_namespace_id();
+
+    local mark_id = M.blame(ns_id);
+
 
     vim.api.nvim_create_autocmd("CursorHold", {
       callback = function()
