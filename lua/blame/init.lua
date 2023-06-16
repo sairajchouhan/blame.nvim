@@ -1,5 +1,7 @@
 M = {}
 
+local current_cursor_pos = nil;
+local is_blame_active = false;
 
 local function _set_timeout(callback, timeout)
   local timer = vim.loop.new_timer()
@@ -120,7 +122,6 @@ local function get_namespace_id()
   return ns_id
 end
 
-local current_cursor_pos = nil;
 
 function M.blame(ns_id)
   local blame = _get_blame_for_current_line();
@@ -151,13 +152,38 @@ function M.setup()
     clear = true
   })
 
+  vim.api.nvim_create_user_command("BlameLineToggle", function ()
+    if is_blame_active then
+      vim.cmd("BlameLineOff")
+    else
+      vim.cmd("BlameLine")
+    end
+  end, {})
+
+  vim.api.nvim_create_user_command("BlameLineOff", function()
+    if not git_checks_passed() then
+      return
+    end
+
+    if is_blame_active then
+      is_blame_active = false;
+    end
+
+    local ns_id = get_namespace_id();
+
+    vim.api.nvim_buf_clear_namespace(0, ns_id, 0, -1)
+    vim.api.nvim_clear_autocmds({
+      group = group
+    })
+
+  end, {})
+
   vim.api.nvim_create_user_command("BlameLineOnce", function()
     if not git_checks_passed() then
       return
     end
 
     local ns_id = get_namespace_id();
-
     local mark_id = M.blame(ns_id);
 
 
@@ -195,9 +221,11 @@ function M.setup()
     end
 
     local ns_id = get_namespace_id();
-
     local mark_id = M.blame(ns_id);
 
+    if not is_blame_active then
+      is_blame_active = true;
+    end
 
     vim.api.nvim_create_autocmd("CursorHold", {
       callback = function()
