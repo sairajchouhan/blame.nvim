@@ -4,6 +4,9 @@
 
 Neovim plugin for showing git blame written in lua
 
+![Screen_Recording_2023-06-20_at_1_59_10_PM_AdobeExpress](https://github.com/sairajchouhan/blame.nvim/assets/57995897/0897bd72-7354-475c-b546-36dfeeafea35)
+
+
 </div>
 
 
