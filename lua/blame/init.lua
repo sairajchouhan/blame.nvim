@@ -19,6 +19,7 @@ local function _set_timeout(callback, timeout)
 end
 
 
+---@diagnostic disable-next-line: unused-function, unused-local
 local function _debounce(callback, timeout)
   local paused = false;
 
@@ -60,8 +61,6 @@ local function _split_on_first_space(str)
   return splitTable
 end
 
-
-
 local function _get_blame_for_current_line()
   local window = vim.api.nvim_get_current_win();
   local line = vim.api.nvim_win_get_cursor(window);
@@ -88,6 +87,13 @@ local function _get_blame_for_current_line()
 end
 
 local function git_checks_passed()
+  local do_you_have_git = vim.fn.executable("git");
+
+  if do_you_have_git == 0 then
+    print("There are bigger problems in your life than this plugin not working, like not having git installed")
+    return false
+  end
+
   local is_git_initialized = vim.fn.system("git rev-parse --is-inside-work-tree");
 
   if not is_git_initialized == "true" then
